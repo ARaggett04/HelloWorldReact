@@ -44,3 +44,25 @@
     background: transparent;
     color: #2563eb;
 }
+
+.welcome-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    color: black;
+    font-family: Arial, sans-serif;
+    gap: 20px;
+}
+
+.welcome-page h1 {
+    font-size: 36px;
+    font-weight: normal;
+}
+
+.welcome-page button {
+    padding: 10px 20px;
+    cursor: pointer;
+}

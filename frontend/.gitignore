@@ -28,6 +28,5 @@ dist/
 .env
 .env.*
 !.env.example
-
 backend/users.db 
 backend/users.db-*

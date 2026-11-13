@@ -93,7 +93,8 @@ app.post("/api/login", async (req, res) => {
 
     res.json({
         message: "Login successful!",
-        username: user.username
+        username: user.username,
+        role: user.role
     });
 });
 

@@ -6,6 +6,7 @@ function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,14 +25,49 @@ function App() {
       );
 
       const data = await response.json();
-      setMessage(data.message);
+      
+      if (!response.ok) {
+        setMessage(data.message);
+        return;
+      }
 
-      if (response.ok) {
+      if(isSignup){
+        setMessage("Account created! You can now log in.")
+        setIsSignup(false);
         setPassword("");
+      } else {
+        setCurrentUser({
+          username: data.username,
+          role: data.role
+        });
+        setPassword("")
       }
     } catch {
-      setMessage("Could not connect to server.");
+      setMessage("Could not connect to the server.")
     }
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+    setUsername("");
+    setPassword("");
+    setMessage("");
+  }
+
+  if (currentUser) {
+    return (
+      <div className="welcome-page">
+        <h1>
+          {currentUser.role === "admin"
+            ? `Welcome Admin ${currentUser.username}`
+            : `Welcome ${currentUser.username}`}
+        </h1>
+
+        <button onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+    )
   }
 
   return (

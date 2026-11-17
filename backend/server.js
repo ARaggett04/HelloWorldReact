@@ -47,6 +47,7 @@ db.prepare(`
         description TEXT DEFAULT '',
         date TEXT NOT NULL,
         time TEXT,
+        is_global INTERGER NOT NULL DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id)
     )
 `).run();
@@ -150,7 +151,7 @@ function requireLogin(req, res, next) {
 }
 
 app.post("/api/events", requireLogin, (req, res) => {
-    const { title, description = "", date, time = null } = req.body;
+    const { title, description = "", date, time = null, is_global = false } = req.body;
 
     if (
         typeof title !== "string" ||
@@ -170,15 +171,38 @@ app.post("/api/events", requireLogin, (req, res) => {
         });
     }
 
+    if (typeof is_global !== "boolean") {
+        return res.status(400).json({
+            message: "Invalid event visibility."
+        });
+    }
+
+    const user = db.prepare(
+        "SELECT role FROM users WHERE id = ?"
+    ).get(req.session.userId);
+
+    if (!user) {
+        return res.status(401).json({
+            message: "User account not found."
+        });
+    }
+
+    if (is_global && user.role !== "admin") {
+        return res.status(403).json({
+            message: "Only admins can create global events."
+        });
+    }
+
     const result = db.prepare(`
-        INSERT INTO events (user_id, title, description, date, time)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO events (user_id, title, description, date, time, is_global)
+        VALUES (?, ?, ?, ?, ?, ?)
     `).run(
         req.session.userId,
         title.trim(),
         description,
         date,
-        time || null
+        time || null,
+        is_global ? 1 : 0
     );
 
     res.status(201).json({
@@ -189,9 +213,9 @@ app.post("/api/events", requireLogin, (req, res) => {
 
 app.get("/api/events", requireLogin, (req, res) => {
     const events = db.prepare(`
-        SELECT id, title, description, date, time
+        SELECT id, title, description, date, time, is_global
         FROM events
-        WHERE user_id = ?
+        WHERE user_id = ? OR is_global = 1
         ORDER BY date ASC, time ASC
     `).all(req.session.userId);
 

@@ -12,6 +12,7 @@ function App() {
   const [eventDescription, setEventDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
+  const [isGlobal, setIsGlobal] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -71,7 +72,8 @@ function App() {
         title: eventTitle,
         description: eventDescription,
         date: eventDate,
-        time: eventTime || null
+        time: eventTime || null,
+        is_global: currentUser.role === "admin" && isGlobal
       })
     });
 
@@ -84,6 +86,7 @@ function App() {
     setEventDescription("");
     setEventDate("");
     setEventTime("");
+    setIsGlobal(false);
     setMessage("");
     await loadEvents();
   }
@@ -112,6 +115,17 @@ function App() {
             ? `Welcome Admin ${currentUser.username}`
             : `Welcome ${currentUser.username}`}
         </h1>
+        
+        {currentUser.role === "admin" && (
+          <label>
+            <input
+              type="checkbox"
+              checked={isGlobal}
+              onChange={e => setIsGlobal(e.target.checked)}
+            />
+            Make this event visible to all users
+          </label>
+        )}
 
         <h2>Create Event</h2>
 
@@ -151,8 +165,13 @@ function App() {
 
         {events.map(event => (
           <div key={event.id}>
-            <h3>{event.title}</h3>
+            <h3>
+              {event.title}
+              {event.is_global === 1 && " (Global Event)"}
+            </h3>
+
             <p>{event.description}</p>
+            
             <p>
               {event.date}
               {event.time ? ` at ${event.time}` : ""}

@@ -47,8 +47,18 @@ db.prepare(`
         description TEXT DEFAULT '',
         date TEXT NOT NULL,
         time TEXT,
-        is_global INTERGER NOT NULL DEFAULT 0,
+        is_global INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+`).run();
+
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS hidden_events (
+    user_id INTEGER NOT NULL,
+    event_id INTEGER NOT NULL,
+    PRIMARY KEY (user_id, event_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (event_id) REFERENCES events(id)
     )
 `).run();
 
@@ -134,6 +144,7 @@ app.post("/api/login", async (req, res) => {
 
         res.json({
             message: "Login successful!",
+            id: user.id,
             username: user.username,
             role: user.role
         });
@@ -213,11 +224,17 @@ app.post("/api/events", requireLogin, (req, res) => {
 
 app.get("/api/events", requireLogin, (req, res) => {
     const events = db.prepare(`
-        SELECT id, title, description, date, time, is_global
-        FROM events
-        WHERE user_id = ? OR is_global = 1
-        ORDER BY date ASC, time ASC
-    `).all(req.session.userId);
+        SELECT e.id, e.user_id, e.title, e.description, e.date, e.time, e.is_global
+        FROM events e
+        WHERE (e.user_id = ? OR e.is_global = 1)
+            AND NOT EXISTS (
+                SELECT 1
+                FROM hidden_events h
+                WHERE h.event_id = e.id
+                    AND h.user_id = ?
+            )
+        ORDER BY e.date ASC, e.time ASC
+    `).all(req.session.userId, req.session.userId);
 
     res.json(events);
 });
@@ -234,6 +251,84 @@ app.post("/api/logout", requireLogin, (req, res) => {
         res.json({
             message: "Logged out."
         });
+    });
+});
+
+app.delete("/api/events/:id", requireLogin, (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+        return res.status(400).json({
+            message: "Invalid event ID."
+        });
+    }
+
+    const event = db.prepare(`
+        SELECT user_id
+        FROM events
+        WHERE id = ?
+    `).get(eventId);
+
+    if (!event) {
+        return res.status(404).json({
+            message: "Event not found."
+        });
+    }
+
+    if (event.user_id !== req.session.userId) {
+        return res.status(403).json({
+            message: "You cannot delete somebody else's event."
+        });
+    }
+
+    const deleteEvent = db.transaction(() => {
+        db.prepare(`
+            DELETE FROM hidden_events
+            WHERE event_id = ?
+        `).run(eventId);
+
+        db.prepare(`
+            DELETE FROM events
+            WHERE id = ?
+        `).run(eventId);
+    });
+
+    deleteEvent();
+
+    res.json({
+        message: "Event deleted successfully."
+    });
+});
+
+app.post("/api/events/:id/hide", requireLogin, (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+        return res.status(400).json({
+            message: "Invalid event ID."
+        });
+    }
+
+    const event = db.prepare(`
+        SELECT id
+        FROM events
+        WHERE id = ?
+            AND (user_id = ? OR is_global = 1)
+    `).get(eventId, req.session.userId);
+
+    if (!event) {
+        return res.status(404).json({
+            message: "Event not found."
+        });
+    }
+
+    db.prepare(`
+        INSERT OR IGNORE INTO hidden_events (user_id, event_id)
+        VALUES (?, ?)
+    `).run(req.session.userId, eventId);
+
+    res.json({
+        message: "Event hidden successfully."
     });
 });
 

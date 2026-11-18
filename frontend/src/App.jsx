@@ -43,6 +43,7 @@ function App() {
         setPassword("");
       } else {
         setCurrentUser({
+          id: data.id,
           username: data.username,
           role: data.role
         });
@@ -89,6 +90,46 @@ function App() {
     setIsGlobal(false);
     setMessage("");
     await loadEvents();
+  }
+
+  async function deleteEvent(eventId) {
+    if (!window.confirm("Are you sure you want to delete this event?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        setMessage("Could not delete event.");
+        return;
+      }
+
+      setMessage("")
+      await loadEvents();
+    } catch {
+      setMessage("Could not connect to the server.");
+    }
+  }
+
+  async function hideEvent(eventId) {
+    try {
+      const response = await fetch(`/api/events/${eventId}/hide`, {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        setMessage("Could not hide event.");
+        return;
+      }
+
+      setMessage("")
+      await loadEvents();
+    } catch {
+      setMessage("Could not connect to the server.");
+    }
   }
 
   async function handleLogout() {
@@ -164,18 +205,36 @@ function App() {
         <h2>My Events</h2>
 
         {events.map(event => (
-          <div key={event.id}>
+          <div key={event.id} className="event-card">
             <h3>
               {event.title}
               {event.is_global === 1 && " (Global Event)"}
             </h3>
 
             <p>{event.description}</p>
-            
+
             <p>
               {event.date}
               {event.time ? ` at ${event.time}` : ""}
             </p>
+
+            <div className="event-actions">
+              {event.user_id === currentUser.id && (
+                <button
+                  type="button"
+                  onClick={() => deleteEvent(event.id)}
+                >
+                  Delete
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => hideEvent(event.id)}
+              >
+                Hide
+              </button>
+            </div>
           </div>
         ))}
 

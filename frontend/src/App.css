@@ -86,3 +86,14 @@
     padding: 8px 14px;
     cursor: pointer;
 }
+
+.event-navigation {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.event-navigation button {
+    padding: 10px 20px;
+    cursor: pointer;
+}

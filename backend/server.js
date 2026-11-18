@@ -332,6 +332,60 @@ app.post("/api/events/:id/hide", requireLogin, (req, res) => {
     });
 });
 
+app.get("/api/events/hidden", requireLogin, (req, res) => {
+    const events = db.prepare(`
+        SELECT
+            e.id,
+            e.user_id,
+            e.title,
+            e.description,
+            e.date,
+            e.time,
+            e.is_global
+        FROM events e
+        JOIN hidden_events h ON h.event_id = e.id
+        WHERE h.user_id = ?
+            AND (e.user_id = ? OR e.is_global = 1)
+        ORDER BY e.date ASC, e.time ASC
+    `).all(req.session.userId, req.session.userId);
+
+    res.json(events);
+});
+
+app.post("/api/events/:id/unhide", requireLogin, (req, res) => {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+        return res.status(400).json({
+            message: "Inbalid event ID."
+        });
+    }
+
+    const event = db.prepare(`
+        SELECT e.id
+        FROM events e
+        JOIN hidden_events h ON h.event_id = e.id
+        WHERE e.id = ?
+            AND h.user_id = ?
+            AND (e.user_id = ? OR e.is_global = 1)
+    `).get(eventId, req.session.userId, req.session.userId);
+
+    if (!event) {
+        return res.status(404).json({
+            message: "Event not found."
+        });
+    }
+
+    db.prepare(`
+        DELETE FROM hidden_events
+        WHERE user_id = ? AND event_id = ?
+    `).run(req.session.userId, eventId);
+
+    res.json({
+        message: "Event restored successfully."
+    });
+});
+
 app.listen(3001, "127.0.0.1", () => {
     console.log("Backend running on port 3001");
 });

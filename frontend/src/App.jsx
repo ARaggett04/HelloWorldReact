@@ -13,6 +13,9 @@ function App() {
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
   const [isGlobal, setIsGlobal] = useState(false);
+  const [hiddenEvents, setHiddenEvents] = useState([]);
+  const [showHiddenEvents, setShowHiddenEvents] = useState(false);
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -47,7 +50,7 @@ function App() {
           username: data.username,
           role: data.role
         });
-        await loadEvents();
+        await refreshEvents();
         setPassword("")
       }
     } catch {
@@ -61,6 +64,21 @@ function App() {
     if (response.ok) {
       setEvents(await response.json());
     }
+  }
+
+  async function loadHiddenEvents() {
+    const response = await fetch("/api/events/hidden");
+
+    if (response.ok) {
+      setHiddenEvents(await response.json());
+    }
+  }
+
+  async function refreshEvents() {
+    await Promise.all([
+      loadEvents(),
+      loadHiddenEvents()
+    ]);
   }
 
   async function createEvent(e) {
@@ -89,7 +107,7 @@ function App() {
     setEventTime("");
     setIsGlobal(false);
     setMessage("");
-    await loadEvents();
+    await refreshEvents();
   }
 
   async function deleteEvent(eventId) {
@@ -108,7 +126,7 @@ function App() {
       }
 
       setMessage("")
-      await loadEvents();
+      await refreshEvents();
     } catch {
       setMessage("Could not connect to the server.");
     }
@@ -126,9 +144,30 @@ function App() {
       }
 
       setMessage("")
-      await loadEvents();
+      await refreshEvents();
     } catch {
       setMessage("Could not connect to the server.");
+    }
+  }
+
+  async function unhideEvent(eventId) {
+    try {
+      const response = await fetch(
+        `/api/events/${eventId}/unhide`,
+        {
+          method: "POST"
+        }
+      );
+
+      if (!response.ok) {
+        setMessage("Could not unhide event.");
+        return;
+      }
+
+      setMessage("");
+      await refreshEvents();
+    } catch {
+      setMessage("Could not connect to the server.")
     }
   }
 
@@ -202,41 +241,104 @@ function App() {
 
         <p role="status">{message}</p>
 
-        <h2>My Events</h2>
+        <div className="event-navigation">
+          <button
+            type="button"
+            onClick={() => setShowHiddenEvents(false)}
+          >
+            My Events
+          </button>
 
-        {events.map(event => (
-          <div key={event.id} className="event-card">
-            <h3>
-              {event.title}
-              {event.is_global === 1 && " (Global Event)"}
-            </h3>
+          <button
+            type="button"
+            onClick={() => setShowHiddenEvents(true)}
+          >
+            Hidden Events
+          </button>
+        </div>
 
-            <p>{event.description}</p>
+        {!showHiddenEvents ? (
+          <div>
+            <h2>My Events</h2>
 
-            <p>
-              {event.date}
-              {event.time ? ` at ${event.time}` : ""}
-            </p>
-
-            <div className="event-actions">
-              {event.user_id === currentUser.id && (
-                <button
-                  type="button"
-                  onClick={() => deleteEvent(event.id)}
-                >
-                  Delete
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => hideEvent(event.id)}
-              >
-                Hide
-              </button>
-            </div>
+            {events.length === 0 && <p>No events to display.</p>}
+            
+            {events.map(event => (
+              <div key={event.id} className="event-card">
+                <h3>
+                  {event.title}
+                  {event.is_global === 1 && " (Global Event)"}
+                </h3>
+    
+                <p>{event.description}</p>
+    
+                <p>
+                  {event.date}
+                  {event.time ? ` at ${event.time}` : ""}
+                </p>
+    
+                <div className="event-actions">
+                  {event.user_id === currentUser.id && (
+                    <button
+                      type="button"
+                      onClick={() => deleteEvent(event.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+    
+                  <button
+                    type="button"
+                    onClick={() => hideEvent(event.id)}
+                  >
+                    Hide
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          <div>
+            <h2>Hidden Events</h2>
+
+            {hiddenEvents.length === 0 && <p>You have no hidden events.</p>}
+            
+            {hiddenEvents.map(event => (
+              <div key={event.id} className="event-card">
+                <h3>
+                  {event.title}
+                  {event.is_global === 1 && " (Global Event)"}
+                </h3>
+    
+                <p>{event.description}</p>
+    
+                <p>
+                  {event.date}
+                  {event.time ? ` at ${event.time}` : ""}
+                </p>
+    
+                <div className="event-actions">
+                  <button
+                    type="button"
+                    onClick={() => unhideEvent(event.id)}
+                  >
+                    Unhide
+                  </button>
+
+                  {event.user_id === currentUser.id && (
+                    <button
+                      type="button"
+                      onClick={() => deleteEvent(event.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
 
         <button onClick={handleLogout}>Logout</button>
       </div>

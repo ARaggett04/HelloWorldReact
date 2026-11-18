@@ -97,3 +97,57 @@
     padding: 10px 20px;
     cursor: pointer;
 }
+
+.event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: min(90%, 700px);
+  margin: 30px auto 50px;
+}
+
+.event-form-top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.event-form-top input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.event-form-bottom {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+.event-form-bottom textarea {
+  flex: 1;
+  min-width: 0;
+  height: 150px;
+  padding: 12px;
+  box-sizing: border-box;
+  resize: none;
+}
+
+.event-form-bottom button {
+  padding: 12px 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .event-form-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-form-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

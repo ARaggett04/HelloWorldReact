@@ -209,36 +209,44 @@ function App() {
 
         <h2>Create Event</h2>
 
-        <form onSubmit={createEvent}>
-          <input
+        <form onSubmit={createEvent} className="event-form">
+
+          <div className="event-form-top">
+            <input
+              type="text"
               placeholder="Event title"
               value={eventTitle}
               onChange={e => setEventTitle(e.target.value)}
               required
-          />
+            />
 
-          <textarea
-              placeholder="Description"
-              value={eventDescription}
-              onChange={e => setEventDescription(e.target.value)}
-          />
-
-          <input
+            <input
               type="date"
               value={eventDate}
               onChange={e => setEventDate(e.target.value)}
               required
-          />
+            />
 
-          <input
+            <input
               type="time"
               value={eventTime}
               onChange={e => setEventTime(e.target.value)}
-          />
+            />
+          </div>
 
-          <button type="submit">Create Event</button>
+          <div className="event-form-bottom">
+            <textarea
+              placeholder="Description"
+              value={eventDescription}
+              onChange={e => setEventDescription(e.target.value)}
+            />
+
+            <button type="submit">
+              Create Event
+            </button>
+          </div>
+          
         </form>
-
         <p role="status">{message}</p>
 
         <div className="event-navigation">
